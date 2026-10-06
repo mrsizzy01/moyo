@@ -1,17 +1,52 @@
 import { Routes } from '@angular/router';
-import { HomeComponent } from './pages/home/home.component';
-import { LiveComponent } from './pages/live/live.component';
-import { StudioComponent } from './pages/studio/studio.component';
-import { LoginComponent } from './pages/auth/login.component';
-import { RegisterComponent } from './pages/auth/register.component';
-import { StatusComponent } from './pages/status/status.component';
 
 export const routes: Routes = [
-  { path: '', component: HomeComponent, title: 'Moyo — Regarder. Écouter. Créer. Diffuser.' },
-  { path: 'live', component: LiveComponent, title: 'Moyo — Diffusions en direct' },
-  { path: 'studio', component: StudioComponent, title: 'Moyo Studio — Espace Créateur' },
-  { path: 'auth/login', component: LoginComponent, title: 'Connexion — Moyo' },
-  { path: 'auth/register', component: RegisterComponent, title: 'Créer un compte — Moyo' },
-  { path: 'status', component: StatusComponent, title: 'État de l\'instance — Moyo' },
-  { path: '**', redirectTo: '' },
+  {
+    path: '',
+    loadComponent: () => import('./pages/home/home.component').then(m => m.HomeComponent)
+  },
+  {
+    path: 'auth/login',
+    loadComponent: () => import('./pages/auth/login.component').then(m => m.LoginComponent)
+  },
+  {
+    path: 'auth/register',
+    loadComponent: () => import('./pages/auth/register.component').then(m => m.RegisterComponent)
+  },
+  {
+    path: 'watch/:id',
+    loadComponent: () => import('./pages/watch/watch.component').then(m => m.WatchComponent)
+  },
+  {
+    path: 'series',
+    loadComponent: () => import('./pages/series/series.component').then(m => m.SeriesPageComponent)
+  },
+  {
+    path: 'music',
+    loadComponent: () => import('./pages/music/music.component').then(m => m.MusicPageComponent)
+  },
+  {
+    path: 'podcasts',
+    loadComponent: () => import('./pages/podcasts/podcasts.component').then(m => m.PodcastsPageComponent)
+  },
+  {
+    path: 'search',
+    loadComponent: () => import('./pages/search/search.component').then(m => m.SearchPageComponent)
+  },
+  {
+    path: 'live',
+    loadComponent: () => import('./pages/live/live.component').then(m => m.LivePageComponent)
+  },
+  {
+    path: 'studio',
+    loadComponent: () => import('./pages/studio/studio.component').then(m => m.StudioComponent)
+  },
+  {
+    path: 'status',
+    loadComponent: () => import('./pages/status/status.component').then(m => m.StatusComponent)
+  },
+  {
+    path: '**',
+    redirectTo: ''
+  }
 ];

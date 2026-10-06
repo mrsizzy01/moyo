@@ -1,59 +1,43 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+// Moyo — Schéma Prisma complet
+// AGPL-3.0 | https://github.com/mrsizzy01/moyo
 
 generator client {
   provider = "prisma-client-js"
 }
 
-// ==========================================
-// ÉNUMÉRATIONS DU SYSTÈME
-// ==========================================
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
-enum UserRole {
-  USER
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  VIEWER
   CREATOR
   MODERATOR
   ADMIN
-  SUPER_ADMIN
 }
 
-enum ContentStatus {
-  DRAFT
+enum MediaType {
+  FILM
+  SERIES_EPISODE
+  SHORT
+  DOCUMENTARY
+  MUSIC_VIDEO
+  VIDEO
+  AUDIO
+  PODCAST_EPISODE
+}
+
+enum VideoStatus {
+  UPLOADING
   PROCESSING
   PUBLISHED
   PRIVATE
   UNLISTED
-  SUSPENDED
+  FAILED
   DELETED
-}
-
-enum VideoQuality {
-  SOURCE
-  Q_360P
-  Q_480P
-  Q_720P
-  Q_1080P
-}
-
-enum MediaType {
-  MOVIE
-  SERIES_EPISODE
-  ANIMATION
-  VIDEO
-  MUSIC_TRACK
-  PODCAST_EPISODE
-}
-
-enum ContentLicense {
-  ALL_RIGHTS_RESERVED
-  CC_BY
-  CC_BY_SA
-  CC_BY_NC
-  CC_BY_ND
-  CC_ZERO
-  PUBLIC_DOMAIN
 }
 
 enum LiveStatus {
@@ -63,512 +47,387 @@ enum LiveStatus {
   CANCELLED
 }
 
-enum NotificationType {
-  NEW_CONTENT
-  NEW_LIVE
-  LIVE_REMINDER
-  COMMENT_REPLY
-  NEW_FOLLOWER
-  SYSTEM
-}
-
 enum ReportReason {
-  COPYRIGHT
+  INAPPROPRIATE_CONTENT
+  COPYRIGHT_VIOLATION
   SPAM
-  HARASSMENT
+  MISINFORMATION
+  HATE_SPEECH
   VIOLENCE
-  ILLEGAL_CONTENT
   OTHER
 }
 
 enum ReportStatus {
   PENDING
-  INVESTIGATING
   RESOLVED
   DISMISSED
 }
 
-enum ProcessingJobStatus {
-  QUEUED
-  PROCESSING
-  COMPLETED
-  FAILED
-}
-
-// ==========================================
-// UTILISATEURS & PROFILS
-// ==========================================
+// ─── User ─────────────────────────────────────────────────────────────────────
 
 model User {
-  id              String        @id @default(uuid())
-  email           String        @unique
-  username        String        @unique
+  id              String   @id @default(cuid())
+  email           String   @unique
+  username        String   @unique
+  displayName     String?
   passwordHash    String
-  displayName     String
   avatarUrl       String?
-  bio             String?
-  role            UserRole      @default(USER)
-  isVerified      Boolean       @default(false)
-  emailVerifiedAt DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  bannerUrl       String?
+  role            Role     @default(VIEWER)
+  isEmailVerified Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  creatorProfile   CreatorProfile?
-  refreshTokens    RefreshToken[]
-  likes            Like[]
-  comments         Comment[]
-  playlists        Playlist[]
-  watchHistory     WatchHistory[]
-  liveMessages     LiveMessage[]
-  reportsSubmitted Report[]          @relation("ReportSubmitter")
-  notifications    Notification[]
-  auditLogs        AuditLog[]
-  studioMemberships StudioMember[]
+  creatorProfile  CreatorProfile?
+  videos          Video[]          @relation("VideoUploader")
+  comments        Comment[]
+  likes           Like[]
+  follows         Follow[]
+  watchHistory    WatchHistory[]
+  liveMessages    LiveMessage[]
+  reports         Report[]
+  auditLogs       AuditLog[]
 
-  @@index([email])
-  @@index([username])
+  @@map("users")
 }
 
-model RefreshToken {
-  id        String   @id @default(uuid())
-  tokenHash String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-}
+// ─── Creator Profile ──────────────────────────────────────────────────────────
 
 model CreatorProfile {
-  id               String   @id @default(uuid())
+  id               String   @id @default(cuid())
   userId           String   @unique
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  channelName      String
+  channelName      String   @unique
   slug             String   @unique
   bio              String?
-  bannerUrl        String?
   avatarUrl        String?
-  isVerified       Boolean  @default(false)
+  bannerUrl        String?
+  websiteUrl       String?
   subscribersCount Int      @default(0)
+  isVerified       Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  videos           Video[]
-  series           Series[]
-  albums           Album[]
-  podcasts         Podcast[]
-  liveStreams      LiveStream[]
-  followers        Follow[]
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videos      Video[]        @relation("VideoCreator")
+  liveStreams  LiveStream[]
+  series      Series[]
+  podcasts    Podcast[]
 
-  @@index([slug])
+  @@map("creator_profiles")
 }
 
-model Studio {
-  id          String   @id @default(uuid())
-  name        String
-  slug        String   @unique
-  description String?
-  logoUrl     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  members StudioMember[]
-
-  @@index([slug])
-}
-
-model StudioMember {
-  id        String   @id @default(uuid())
-  studioId  String
-  studio    Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      String   @default("MEMBER")
-  createdAt DateTime @default(now())
-
-  @@unique([studioId, userId])
-}
-
-// ==========================================
-// VIDÉO, FILMS & SÉRIES
-// ==========================================
+// ─── Video ────────────────────────────────────────────────────────────────────
 
 model Video {
-  id              String         @id @default(uuid())
-  title           String
-  slug            String         @unique
-  description     String?
-  mediaType       MediaType      @default(VIDEO)
-  status          ContentStatus  @default(DRAFT)
-  license         ContentLicense @default(ALL_RIGHTS_RESERVED)
-  thumbnailUrl    String?
-  originalKey     String?
+  id                String      @id @default(cuid())
+  title             String
+  slug              String      @unique
+  description       String?
+  mediaType         MediaType   @default(VIDEO)
+  status            VideoStatus @default(UPLOADING)
+  sourceObjectKey   String?
   masterPlaylistUrl String?
-  durationSeconds Int?
-  viewsCount      Int            @default(0)
-  likesCount      Int            @default(0)
-  commentsCount   Int            @default(0)
-  creatorId       String
-  creator         CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  thumbnailUrl      String?
+  durationSeconds   Int?
+  resolution        String?
+  sizeBytes         BigInt?
+  language          String?     @default("fr")
+  ageRating         String?     @default("ALL")
+  isExplicit        Boolean     @default(false)
+  tags              String[]    @default([])
+  viewsCount        Int         @default(0)
+  likesCount        Int         @default(0)
+  commentsCount     Int         @default(0)
+  publishedAt       DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
-  // Relation optionnelle si rattaché à un épisode de série
-  episodeId       String?        @unique
-  episode         Episode?       @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  uploaderId  String
+  creatorId   String
 
-  variants        VideoVariant[]
-  comments        Comment[]
-  likes           Like[]
-  playlistItems   PlaylistItem[]
-  watchHistory    WatchHistory[]
-  processingJobs  MediaProcessingJob[]
+  uploader      User            @relation("VideoUploader", fields: [uploaderId], references: [id])
+  creator       CreatorProfile  @relation("VideoCreator", fields: [creatorId], references: [id])
+  seriesEpisode SeriesEpisode?
+  comments      Comment[]
+  likes         Like[]
+  watchHistory  WatchHistory[]
 
-  publishedAt     DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  @@index([creatorId])
-  @@index([status])
-  @@index([mediaType])
-  @@index([slug])
+  @@map("videos")
 }
 
-model VideoVariant {
-  id          String       @id @default(uuid())
-  videoId     String
-  video       Video        @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  quality     VideoQuality
-  width       Int
-  height      Int
-  bitrate     Int
-  playlistUrl String
-  createdAt   DateTime     @default(now())
-
-  @@unique([videoId, quality])
-}
+// ─── Series & Seasons & Episodes ──────────────────────────────────────────────
 
 model Series {
-  id          String         @id @default(uuid())
+  id          String      @id @default(cuid())
   title       String
-  slug        String         @unique
+  slug        String      @unique
   description String?
   bannerUrl   String?
-  coverUrl    String?
-  creatorId   String
-  creator     CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  status      ContentStatus  @default(DRAFT)
-  seasons     Season[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  status      VideoStatus @default(PRIVATE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  @@index([slug])
-  @@index([creatorId])
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id])
+  seasons   Season[]
+
+  @@map("series")
 }
 
 model Season {
-  id           String    @id @default(uuid())
-  seriesId     String
-  series       Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
   seasonNumber Int
   title        String?
   description  String?
-  episodes     Episode[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime @default(now())
+
+  seriesId String
+  series   Series         @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  episodes SeriesEpisode[]
 
   @@unique([seriesId, seasonNumber])
+  @@map("seasons")
 }
 
-model Episode {
-  id            String   @id @default(uuid())
-  seasonId      String
-  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+model SeriesEpisode {
+  id            String   @id @default(cuid())
   episodeNumber Int
   title         String
   description   String?
-  thumbnailUrl  String?
-  video         Video?
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+
+  seasonId String
+  season   Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  videoId  String @unique
+  video    Video  @relation(fields: [videoId], references: [id])
 
   @@unique([seasonId, episodeNumber])
+  @@map("series_episodes")
 }
 
-// ==========================================
-// MUSIQUE & PODCASTS
-// ==========================================
+// ─── Music ────────────────────────────────────────────────────────────────────
 
 model Artist {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   name      String
   slug      String   @unique
   bio       String?
   avatarUrl String?
-  albums    Album[]
-  tracks    Track[]
+  country   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([slug])
+  albums Album[]
+  tracks Track[]
+
+  @@map("artists")
 }
 
 model Album {
-  id          String          @id @default(uuid())
-  title       String
-  slug        String          @unique
-  coverUrl    String?
-  artistId    String
-  artist      Artist          @relation(fields: [artistId], references: [id], onDelete: Cascade)
-  creatorId   String
-  creator     CreatorProfile  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  year        Int?
-  genre       String?
-  tracks      Track[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  coverUrl  String?
+  year      Int?
+  genre     String?
+  createdAt DateTime @default(now())
 
-  @@index([slug])
+  artistId String
+  artist   Artist  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  tracks   Track[]
+
+  @@map("albums")
 }
 
 model Track {
-  id              String         @id @default(uuid())
+  id              String   @id @default(cuid())
+  trackNumber     Int      @default(1)
   title           String
-  artistId        String
-  artist          Artist         @relation(fields: [artistId], references: [id], onDelete: Cascade)
-  albumId         String?
-  album           Album?         @relation(fields: [albumId], references: [id], onDelete: SetNull)
-  trackNumber     Int?
-  durationSeconds Int
   audioUrl        String
-  license         ContentLicense @default(ALL_RIGHTS_RESERVED)
-  playsCount      Int            @default(0)
-  likesCount      Int            @default(0)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  durationSeconds Int?
+  playsCount      Int      @default(0)
+  createdAt       DateTime @default(now())
 
-  @@index([artistId])
-  @@index([albumId])
+  artistId String
+  artist   Artist  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  albumId  String?
+  album    Album?  @relation(fields: [albumId], references: [id])
+
+  @@map("tracks")
 }
 
+// ─── Podcast ──────────────────────────────────────────────────────────────────
+
 model Podcast {
-  id          String           @id @default(uuid())
+  id          String   @id @default(cuid())
   title       String
-  slug        String           @unique
+  slug        String   @unique
   description String?
   coverUrl    String?
-  creatorId   String
-  creator     CreatorProfile   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  episodes    PodcastEpisode[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  language    String?  @default("fr")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  @@index([slug])
+  creatorId String
+  creator   CreatorProfile   @relation(fields: [creatorId], references: [id])
+  episodes  PodcastEpisode[]
+
+  @@map("podcasts")
 }
 
 model PodcastEpisode {
-  id              String   @id @default(uuid())
-  podcastId       String
-  podcast         Podcast  @relation(fields: [podcastId], references: [id], onDelete: Cascade)
-  episodeNumber   Int
+  id              String    @id @default(cuid())
+  episodeNumber   Int?
   title           String
   description     String?
   audioUrl        String
-  durationSeconds Int
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  durationSeconds Int?
+  publishedAt     DateTime?
+  createdAt       DateTime  @default(now())
 
-  @@unique([podcastId, episodeNumber])
+  podcastId String
+  podcast   Podcast @relation(fields: [podcastId], references: [id], onDelete: Cascade)
+
+  @@map("podcast_episodes")
 }
 
-// ==========================================
-// DIFFUSION DIRECTE (LIVE RTMP / HLS)
-// ==========================================
+// ─── Live Streaming ───────────────────────────────────────────────────────────
 
 model LiveStream {
-  id                 String         @id @default(uuid())
+  id                 String     @id @default(cuid())
   title              String
   description        String?
-  thumbnailUrl       String?
-  streamKey          String         @unique
-  status             LiveStatus     @default(SCHEDULED)
+  streamKey          String     @unique
+  status             LiveStatus @default(SCHEDULED)
   hlsPlaybackUrl     String?
-  isChatEnabled      Boolean        @default(true)
-  isRecordingEnabled Boolean        @default(true)
+  isChatEnabled      Boolean    @default(true)
+  isRecordingEnabled Boolean    @default(true)
+  viewerCount        Int        @default(0)
+  peakViewerCount    Int        @default(0)
   scheduledFor       DateTime?
   startedAt          DateTime?
   endedAt            DateTime?
-  viewersCount       Int            @default(0)
-  creatorId          String
-  creator            CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
-  sessions           LiveSession[]
-  messages           LiveMessage[]
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  creatorId String
+  creator   CreatorProfile @relation(fields: [creatorId], references: [id])
+  sessions  LiveSession[]
+  messages  LiveMessage[]
 
-  @@index([creatorId])
-  @@index([status])
+  @@map("live_streams")
 }
 
 model LiveSession {
-  id           String     @id @default(uuid())
+  id           String    @id @default(cuid())
+  startedAt    DateTime
+  endedAt      DateTime?
+  durationSecs Int?
+
   liveStreamId String
   liveStream   LiveStream @relation(fields: [liveStreamId], references: [id], onDelete: Cascade)
-  startedAt    DateTime   @default(now())
-  endedAt      DateTime?
-  peakViewers  Int        @default(0)
-  recordingKey String?
+
+  @@map("live_sessions")
 }
 
 model LiveMessage {
-  id           String     @id @default(uuid())
+  id        String   @id @default(cuid())
+  message   String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
   liveStreamId String
   liveStream   LiveStream @relation(fields: [liveStreamId], references: [id], onDelete: Cascade)
   userId       String
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  message      String
-  isModerator  Boolean    @default(false)
-  createdAt    DateTime   @default(now())
 
-  @@index([liveStreamId, createdAt])
+  @@map("live_messages")
 }
 
-// ==========================================
-// SOCIAL, INTERACTIONS & PLAYLISTS
-// ==========================================
-
-model Playlist {
-  id          String         @id @default(uuid())
-  title       String
-  description String?
-  isPublic    Boolean        @default(true)
-  userId      String
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items       PlaylistItem[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-
-  @@index([userId])
-}
-
-model PlaylistItem {
-  id         String   @id @default(uuid())
-  playlistId String
-  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
-  videoId    String
-  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  position   Int
-  addedAt    DateTime @default(now())
-
-  @@unique([playlistId, videoId])
-}
+// ─── Social ───────────────────────────────────────────────────────────────────
 
 model Like {
-  id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   videoId   String
-  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
-  @@unique([userId, videoId])
-}
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
-model Comment {
-  id        String    @id @default(uuid())
-  videoId   String
-  video     Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content   String
-  parentId  String?
-  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   Comment[] @relation("CommentReplies")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  @@index([videoId])
+  @@id([userId, videoId])
+  @@map("likes")
 }
 
 model Follow {
-  id        String         @id @default(uuid())
   followerId String
   creatorId  String
-  creator    CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  createdAt  DateTime       @default(now())
+  createdAt  DateTime @default(now())
 
-  @@unique([followerId, creatorId])
+  follower User @relation(fields: [followerId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, creatorId])
+  @@map("follows")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.VarChar(2000)
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId  String
+  videoId String
+
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video   Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("Replies", fields: [parentId], references: [id])
+  replies Comment[] @relation("Replies")
+
+  @@map("comments")
 }
 
 model WatchHistory {
-  id              String   @id @default(uuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   videoId         String
-  video           Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
   progressSeconds Int      @default(0)
   updatedAt       DateTime @updatedAt
 
-  @@unique([userId, videoId])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@id([userId, videoId])
+  @@map("watch_history")
 }
 
-// ==========================================
-// NOTIFICATIONS, MODÉRATION & AUDIT
-// ==========================================
-
-model Notification {
-  id        String           @id @default(uuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      NotificationType
-  title     String
-  message   String
-  payload   Json?
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
-
-  @@index([userId, isRead])
-}
+// ─── Moderation ───────────────────────────────────────────────────────────────
 
 model Report {
-  id          String       @id @default(uuid())
-  reporterId  String
-  reporter    User         @relation("ReportSubmitter", fields: [reporterId], references: [id], onDelete: Cascade)
-  targetType  String
-  targetId    String
-  reason      ReportReason
-  details     String?
-  status      ReportStatus @default(PENDING)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id         String       @id @default(cuid())
+  targetType String
+  targetId   String
+  reason     ReportReason
+  details    String?
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
-  @@index([status])
-}
+  reporterId String
+  reporter   User   @relation(fields: [reporterId], references: [id])
 
-model MediaProcessingJob {
-  id           String              @id @default(uuid())
-  videoId      String
-  video        Video               @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  status       ProcessingJobStatus @default(QUEUED)
-  progress     Int                 @default(0)
-  errorMessage String?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-
-  @@index([videoId])
-  @@index([status])
+  @@map("reports")
 }
 
 model AuditLog {
-  id         String   @id @default(uuid())
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id         String   @id @default(cuid())
   action     String
   resource   String
   resourceId String?
   metadata   Json?
   createdAt  DateTime @default(now())
 
-  @@index([action])
-  @@index([createdAt])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
 }
