@@ -36,6 +36,7 @@ import { NotificationsService, NotificationItem } from './services/notifications
 
           <!-- Nav Links -->
           <div class="hidden md:flex items-center gap-1">
+            <a routerLink="/movies" routerLinkActive="text-moyo-accent" class="nav-link">🎬 Films</a>
             <a routerLink="/series" routerLinkActive="text-moyo-accent" class="nav-link">📺 Séries</a>
             <a routerLink="/music" routerLinkActive="text-moyo-accent" class="nav-link">🎵 Musique</a>
             <a routerLink="/podcasts" routerLinkActive="text-moyo-accent" class="nav-link">🎙️ Podcasts</a>

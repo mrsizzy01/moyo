@@ -200,4 +200,66 @@ export class ApiService {
   search(query: string): Observable<any> {
     return this.http.get(`${this.baseUrl}/search`, { params: { q: query } });
   }
+
+  // ── Admin ──
+  getAdminStats(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/admin/stats`, { headers: this.getAuthHeaders() });
+  }
+
+  getAdminUsers(page = 1, limit = 20, search?: string): Observable<any> {
+    const params: any = { page, limit };
+    if (search) params.search = search;
+    return this.http.get(`${this.baseUrl}/admin/users`, {
+      params,
+      headers: this.getAuthHeaders(),
+    });
+  }
+
+  updateUserRole(userId: string, role: string): Observable<any> {
+    return this.http.patch(
+      `${this.baseUrl}/admin/users/${userId}/role`,
+      { role },
+      { headers: this.getAuthHeaders() },
+    );
+  }
+
+  toggleUserStatus(userId: string, isActive: boolean): Observable<any> {
+    return this.http.patch(
+      `${this.baseUrl}/admin/users/${userId}/status`,
+      { isActive },
+      { headers: this.getAuthHeaders() },
+    );
+  }
+
+  getAdminReports(status?: string, page = 1, limit = 20): Observable<any> {
+    const params: any = { page, limit };
+    if (status) params.status = status;
+    return this.http.get(`${this.baseUrl}/admin/reports`, {
+      params,
+      headers: this.getAuthHeaders(),
+    });
+  }
+
+  resolveReport(reportId: string): Observable<any> {
+    return this.http.patch(
+      `${this.baseUrl}/admin/reports/${reportId}/resolve`,
+      {},
+      { headers: this.getAuthHeaders() },
+    );
+  }
+
+  dismissReport(reportId: string): Observable<any> {
+    return this.http.patch(
+      `${this.baseUrl}/admin/reports/${reportId}/dismiss`,
+      {},
+      { headers: this.getAuthHeaders() },
+    );
+  }
+
+  getAdminAuditLogs(page = 1, limit = 30): Observable<any> {
+    return this.http.get(`${this.baseUrl}/admin/audit-logs`, {
+      params: { page, limit },
+      headers: this.getAuthHeaders(),
+    });
+  }
 }

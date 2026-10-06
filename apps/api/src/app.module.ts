@@ -15,6 +15,7 @@ import { UploadModule } from './upload/upload.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ChannelsModule } from './channels/channels.module';
 import { PlaylistsModule } from './playlists/playlists.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { PlaylistsModule } from './playlists/playlists.module';
     NotificationsModule,
     ChannelsModule,
     PlaylistsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

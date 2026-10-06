@@ -18,6 +18,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/watch/watch.component').then(m => m.WatchComponent)
   },
   {
+    path: 'movies',
+    loadComponent: () => import('./pages/movies/movies.component').then(m => m.MoviesPageComponent)
+  },
+  {
     path: 'series',
     loadComponent: () => import('./pages/series/series.component').then(m => m.SeriesPageComponent)
   },
@@ -48,6 +52,10 @@ export const routes: Routes = [
   {
     path: 'profile',
     loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent)
+  },
+  {
+    path: 'admin',
+    loadComponent: () => import('./pages/admin/admin.component').then(m => m.AdminComponent)
   },
   {
     path: 'status',
