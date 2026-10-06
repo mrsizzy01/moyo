@@ -1,0 +1,24 @@
+{
+  "name": "moyo-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Worker de transcodage et traitement média FFmpeg pour Moyo",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "start:dev": "ts-node src/main.ts"
+  },
+  "dependencies": {
+    "@moyo/types": "*",
+    "bullmq": "^5.7.11",
+    "dotenv": "^16.4.5",
+    "fluent-ffmpeg": "^2.1.3",
+    "ioredis": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/fluent-ffmpeg": "^2.1.24",
+    "@types/node": "^20.12.12",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

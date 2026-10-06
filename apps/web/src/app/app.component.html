@@ -1,0 +1,62 @@
+<div class="min-h-screen flex flex-col bg-moyo-dark text-moyo-text">
+  <!-- Top Navigation Header -->
+  <header class="sticky top-0 z-50 glass-nav border-b border-moyo-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <!-- Logo Moyo -->
+      <a routerLink="/" class="flex items-center gap-2.5 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-moyo-accent to-amber-500 flex items-center justify-center shadow-lg shadow-moyo-accent/30 group-hover:scale-105 transition-transform">
+          <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </div>
+        <span class="text-xl font-extrabold tracking-tight text-white">
+          MOYO
+        </span>
+      </a>
+
+      <!-- Quick Nav Links -->
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-moyo-muted">
+        <a routerLink="/" routerLinkActive="text-white font-semibold" [routerLinkActiveOptions]="{exact: true}" class="hover:text-white transition-colors">Explorer</a>
+        <a routerLink="/live" routerLinkActive="text-white font-semibold" class="hover:text-white transition-colors flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-red-500"></span>
+          Live
+        </a>
+        <a routerLink="/studio" routerLinkActive="text-white font-semibold" class="hover:text-white transition-colors">Studio</a>
+        <a routerLink="/status" routerLinkActive="text-white font-semibold" class="hover:text-white transition-colors">Instance</a>
+      </nav>
+
+      <!-- Right Actions -->
+      <div class="flex items-center gap-3">
+        <a routerLink="/studio" class="btn-primary text-xs py-2 px-3.5 hidden sm:inline-flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Publier
+        </a>
+        <a routerLink="/auth/login" class="btn-secondary text-xs py-2 px-3.5">
+          Connexion
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Area -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-moyo-border bg-moyo-card/40 mt-auto py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-moyo-muted">
+      <div>
+        <strong class="text-white">Moyo</strong> — Regarder. Écouter. Créer. Diffuser.
+        <span class="ml-2">Logiciel libre sous licence AGPL-3.0</span>
+      </div>
+      <div class="flex items-center gap-6">
+        <a routerLink="/status" class="hover:text-white transition-colors">Diagnostic système</a>
+        <a href="https://github.com/mrsizzy01/moyo" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Dépôt GitHub</a>
+        <span>Node 24 / Angular 17 / NestJS</span>
+      </div>
+    </div>
+  </footer>
+</div>

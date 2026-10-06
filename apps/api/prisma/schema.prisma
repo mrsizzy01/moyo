@@ -1,0 +1,574 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// ÉNUMÉRATIONS DU SYSTÈME
+// ==========================================
+
+enum UserRole {
+  USER
+  CREATOR
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ContentStatus {
+  DRAFT
+  PROCESSING
+  PUBLISHED
+  PRIVATE
+  UNLISTED
+  SUSPENDED
+  DELETED
+}
+
+enum VideoQuality {
+  SOURCE
+  Q_360P
+  Q_480P
+  Q_720P
+  Q_1080P
+}
+
+enum MediaType {
+  MOVIE
+  SERIES_EPISODE
+  ANIMATION
+  VIDEO
+  MUSIC_TRACK
+  PODCAST_EPISODE
+}
+
+enum ContentLicense {
+  ALL_RIGHTS_RESERVED
+  CC_BY
+  CC_BY_SA
+  CC_BY_NC
+  CC_BY_ND
+  CC_ZERO
+  PUBLIC_DOMAIN
+}
+
+enum LiveStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum NotificationType {
+  NEW_CONTENT
+  NEW_LIVE
+  LIVE_REMINDER
+  COMMENT_REPLY
+  NEW_FOLLOWER
+  SYSTEM
+}
+
+enum ReportReason {
+  COPYRIGHT
+  SPAM
+  HARASSMENT
+  VIOLENCE
+  ILLEGAL_CONTENT
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+enum ProcessingJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ==========================================
+// UTILISATEURS & PROFILS
+// ==========================================
+
+model User {
+  id              String        @id @default(uuid())
+  email           String        @unique
+  username        String        @unique
+  passwordHash    String
+  displayName     String
+  avatarUrl       String?
+  bio             String?
+  role            UserRole      @default(USER)
+  isVerified      Boolean       @default(false)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  creatorProfile   CreatorProfile?
+  refreshTokens    RefreshToken[]
+  likes            Like[]
+  comments         Comment[]
+  playlists        Playlist[]
+  watchHistory     WatchHistory[]
+  liveMessages     LiveMessage[]
+  reportsSubmitted Report[]          @relation("ReportSubmitter")
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  studioMemberships StudioMember[]
+
+  @@index([email])
+  @@index([username])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model CreatorProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelName      String
+  slug             String   @unique
+  bio              String?
+  bannerUrl        String?
+  avatarUrl        String?
+  isVerified       Boolean  @default(false)
+  subscribersCount Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  videos           Video[]
+  series           Series[]
+  albums           Album[]
+  podcasts         Podcast[]
+  liveStreams      LiveStream[]
+  followers        Follow[]
+
+  @@index([slug])
+}
+
+model Studio {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members StudioMember[]
+
+  @@index([slug])
+}
+
+model StudioMember {
+  id        String   @id @default(uuid())
+  studioId  String
+  studio    Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("MEMBER")
+  createdAt DateTime @default(now())
+
+  @@unique([studioId, userId])
+}
+
+// ==========================================
+// VIDÉO, FILMS & SÉRIES
+// ==========================================
+
+model Video {
+  id              String         @id @default(uuid())
+  title           String
+  slug            String         @unique
+  description     String?
+  mediaType       MediaType      @default(VIDEO)
+  status          ContentStatus  @default(DRAFT)
+  license         ContentLicense @default(ALL_RIGHTS_RESERVED)
+  thumbnailUrl    String?
+  originalKey     String?
+  masterPlaylistUrl String?
+  durationSeconds Int?
+  viewsCount      Int            @default(0)
+  likesCount      Int            @default(0)
+  commentsCount   Int            @default(0)
+  creatorId       String
+  creator         CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Relation optionnelle si rattaché à un épisode de série
+  episodeId       String?        @unique
+  episode         Episode?       @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
+  variants        VideoVariant[]
+  comments        Comment[]
+  likes           Like[]
+  playlistItems   PlaylistItem[]
+  watchHistory    WatchHistory[]
+  processingJobs  MediaProcessingJob[]
+
+  publishedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([creatorId])
+  @@index([status])
+  @@index([mediaType])
+  @@index([slug])
+}
+
+model VideoVariant {
+  id          String       @id @default(uuid())
+  videoId     String
+  video       Video        @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  quality     VideoQuality
+  width       Int
+  height      Int
+  bitrate     Int
+  playlistUrl String
+  createdAt   DateTime     @default(now())
+
+  @@unique([videoId, quality])
+}
+
+model Series {
+  id          String         @id @default(uuid())
+  title       String
+  slug        String         @unique
+  description String?
+  bannerUrl   String?
+  coverUrl    String?
+  creatorId   String
+  creator     CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  status      ContentStatus  @default(DRAFT)
+  seasons     Season[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([slug])
+  @@index([creatorId])
+}
+
+model Season {
+  id           String    @id @default(uuid())
+  seriesId     String
+  series       Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  seasonNumber Int
+  title        String?
+  description  String?
+  episodes     Episode[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([seriesId, seasonNumber])
+}
+
+model Episode {
+  id            String   @id @default(uuid())
+  seasonId      String
+  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  episodeNumber Int
+  title         String
+  description   String?
+  thumbnailUrl  String?
+  video         Video?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([seasonId, episodeNumber])
+}
+
+// ==========================================
+// MUSIQUE & PODCASTS
+// ==========================================
+
+model Artist {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  bio       String?
+  avatarUrl String?
+  albums    Album[]
+  tracks    Track[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+}
+
+model Album {
+  id          String          @id @default(uuid())
+  title       String
+  slug        String          @unique
+  coverUrl    String?
+  artistId    String
+  artist      Artist          @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  creatorId   String
+  creator     CreatorProfile  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  year        Int?
+  genre       String?
+  tracks      Track[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([slug])
+}
+
+model Track {
+  id              String         @id @default(uuid())
+  title           String
+  artistId        String
+  artist          Artist         @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  albumId         String?
+  album           Album?         @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  trackNumber     Int?
+  durationSeconds Int
+  audioUrl        String
+  license         ContentLicense @default(ALL_RIGHTS_RESERVED)
+  playsCount      Int            @default(0)
+  likesCount      Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([artistId])
+  @@index([albumId])
+}
+
+model Podcast {
+  id          String           @id @default(uuid())
+  title       String
+  slug        String           @unique
+  description String?
+  coverUrl    String?
+  creatorId   String
+  creator     CreatorProfile   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  episodes    PodcastEpisode[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([slug])
+}
+
+model PodcastEpisode {
+  id              String   @id @default(uuid())
+  podcastId       String
+  podcast         Podcast  @relation(fields: [podcastId], references: [id], onDelete: Cascade)
+  episodeNumber   Int
+  title           String
+  description     String?
+  audioUrl        String
+  durationSeconds Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([podcastId, episodeNumber])
+}
+
+// ==========================================
+// DIFFUSION DIRECTE (LIVE RTMP / HLS)
+// ==========================================
+
+model LiveStream {
+  id                 String         @id @default(uuid())
+  title              String
+  description        String?
+  thumbnailUrl       String?
+  streamKey          String         @unique
+  status             LiveStatus     @default(SCHEDULED)
+  hlsPlaybackUrl     String?
+  isChatEnabled      Boolean        @default(true)
+  isRecordingEnabled Boolean        @default(true)
+  scheduledFor       DateTime?
+  startedAt          DateTime?
+  endedAt            DateTime?
+  viewersCount       Int            @default(0)
+  creatorId          String
+  creator            CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  sessions           LiveSession[]
+  messages           LiveMessage[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([creatorId])
+  @@index([status])
+}
+
+model LiveSession {
+  id           String     @id @default(uuid())
+  liveStreamId String
+  liveStream   LiveStream @relation(fields: [liveStreamId], references: [id], onDelete: Cascade)
+  startedAt    DateTime   @default(now())
+  endedAt      DateTime?
+  peakViewers  Int        @default(0)
+  recordingKey String?
+}
+
+model LiveMessage {
+  id           String     @id @default(uuid())
+  liveStreamId String
+  liveStream   LiveStream @relation(fields: [liveStreamId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message      String
+  isModerator  Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  @@index([liveStreamId, createdAt])
+}
+
+// ==========================================
+// SOCIAL, INTERACTIONS & PLAYLISTS
+// ==========================================
+
+model Playlist {
+  id          String         @id @default(uuid())
+  title       String
+  description String?
+  isPublic    Boolean        @default(true)
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       PlaylistItem[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId])
+}
+
+model PlaylistItem {
+  id         String   @id @default(uuid())
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  videoId    String
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  position   Int
+  addedAt    DateTime @default(now())
+
+  @@unique([playlistId, videoId])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, videoId])
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  videoId   String
+  video     Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([videoId])
+}
+
+model Follow {
+  id        String         @id @default(uuid())
+  followerId String
+  creatorId  String
+  creator    CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+
+  @@unique([followerId, creatorId])
+}
+
+model WatchHistory {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videoId         String
+  video           Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  progressSeconds Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, videoId])
+}
+
+// ==========================================
+// NOTIFICATIONS, MODÉRATION & AUDIT
+// ==========================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  payload   Json?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+}
+
+model Report {
+  id          String       @id @default(uuid())
+  reporterId  String
+  reporter    User         @relation("ReportSubmitter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType  String
+  targetId    String
+  reason      ReportReason
+  details     String?
+  status      ReportStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([status])
+}
+
+model MediaProcessingJob {
+  id           String              @id @default(uuid())
+  videoId      String
+  video        Video               @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  status       ProcessingJobStatus @default(QUEUED)
+  progress     Int                 @default(0)
+  errorMessage String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([videoId])
+  @@index([status])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  resource   String
+  resourceId String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([action])
+  @@index([createdAt])
+}

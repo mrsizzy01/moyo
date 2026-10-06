@@ -1,0 +1,37 @@
+{
+  "name": "moyo-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Moyo — Regarder. Écouter. Créer. Diffuser. Plateforme multimédia open source.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "dev:api": "npm run start:dev --workspace=moyo-api",
+    "dev:web": "npm run start --workspace=moyo-web",
+    "dev:worker": "npm run start:dev --workspace=moyo-worker",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "prisma:generate": "npm run prisma:generate --workspace=moyo-api",
+    "prisma:migrate": "npm run prisma:migrate --workspace=moyo-api"
+  },
+  "keywords": [
+    "moyo",
+    "streaming",
+    "open-source",
+    "video",
+    "music",
+    "live",
+    "podcast",
+    "hls",
+    "webrtc",
+    "ffmpeg",
+    "agplv3"
+  ],
+  "author": "Mrsizzy & Moyo Contributors",
+  "license": "AGPL-3.0"
+}
