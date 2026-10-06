@@ -42,6 +42,14 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/studio/studio.component').then(m => m.StudioComponent)
   },
   {
+    path: 'channel/:slug',
+    loadComponent: () => import('./pages/channel/channel.component').then(m => m.ChannelComponent)
+  },
+  {
+    path: 'profile',
+    loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent)
+  },
+  {
     path: 'status',
     loadComponent: () => import('./pages/status/status.component').then(m => m.StatusComponent)
   },

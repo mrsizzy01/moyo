@@ -88,6 +88,8 @@ model User {
   liveMessages    LiveMessage[]
   reports         Report[]
   auditLogs       AuditLog[]
+  notifications   Notification[]
+  playlists       Playlist[]
 
   @@map("users")
 }
@@ -152,6 +154,7 @@ model Video {
   comments      Comment[]
   likes         Like[]
   watchHistory  WatchHistory[]
+  playlistItems PlaylistItem[]
 
   @@map("videos")
 }
@@ -431,3 +434,48 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+// ─── Notifications & Playlists ───────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model Playlist {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  isPublic    Boolean        @default(true)
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       PlaylistItem[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("playlists")
+}
+
+model PlaylistItem {
+  id         String   @id @default(cuid())
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  videoId    String
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@unique([playlistId, videoId])
+  @@map("playlist_items")
+}
+

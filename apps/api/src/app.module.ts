@@ -11,6 +11,10 @@ import { LiveModule } from './live/live.module';
 import { SearchModule } from './search/search.module';
 import { SocialModule } from './social/social.module';
 import { ModerationModule } from './moderation/moderation.module';
+import { UploadModule } from './upload/upload.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ChannelsModule } from './channels/channels.module';
+import { PlaylistsModule } from './playlists/playlists.module';
 
 @Module({
   imports: [
@@ -29,6 +33,11 @@ import { ModerationModule } from './moderation/moderation.module';
     SearchModule,
     SocialModule,
     ModerationModule,
+    UploadModule,
+    NotificationsModule,
+    ChannelsModule,
+    PlaylistsModule,
   ],
 })
 export class AppModule {}
+
