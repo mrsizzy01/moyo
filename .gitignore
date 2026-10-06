@@ -28,9 +28,9 @@ storage/
 uploads/
 media/
 *.mp4
-*.ts
 *.m3u8
 *.flv
+/storage/**/*.ts
 
 # Logs
 logs/

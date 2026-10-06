@@ -1,0 +1,83 @@
+export enum UserRole {
+  USER = 'USER',
+  CREATOR = 'CREATOR',
+  MODERATOR = 'MODERATOR',
+  ADMIN = 'ADMIN',
+  SUPER_ADMIN = 'SUPER_ADMIN',
+}
+
+export enum ContentStatus {
+  DRAFT = 'DRAFT',
+  PROCESSING = 'PROCESSING',
+  PUBLISHED = 'PUBLISHED',
+  PRIVATE = 'PRIVATE',
+  UNLISTED = 'UNLISTED',
+  SUSPENDED = 'SUSPENDED',
+  DELETED = 'DELETED',
+}
+
+export enum VideoQuality {
+  SOURCE = 'SOURCE',
+  Q_360P = '360p',
+  Q_480P = '480p',
+  Q_720P = '720p',
+  Q_1080P = '1080p',
+}
+
+export enum MediaType {
+  MOVIE = 'MOVIE',
+  SERIES_EPISODE = 'SERIES_EPISODE',
+  ANIMATION = 'ANIMATION',
+  VIDEO = 'VIDEO',
+  MUSIC_TRACK = 'MUSIC_TRACK',
+  PODCAST_EPISODE = 'PODCAST_EPISODE',
+}
+
+export enum ContentLicense {
+  ALL_RIGHTS_RESERVED = 'ALL_RIGHTS_RESERVED',
+  CC_BY = 'CC_BY',
+  CC_BY_SA = 'CC_BY_SA',
+  CC_BY_NC = 'CC_BY_NC',
+  CC_BY_ND = 'CC_BY_ND',
+  CC_ZERO = 'CC_ZERO',
+  PUBLIC_DOMAIN = 'PUBLIC_DOMAIN',
+}
+
+export enum LiveStatus {
+  SCHEDULED = 'SCHEDULED',
+  LIVE = 'LIVE',
+  ENDED = 'ENDED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum NotificationType {
+  NEW_CONTENT = 'NEW_CONTENT',
+  NEW_LIVE = 'NEW_LIVE',
+  LIVE_REMINDER = 'LIVE_REMINDER',
+  COMMENT_REPLY = 'COMMENT_REPLY',
+  NEW_FOLLOWER = 'NEW_FOLLOWER',
+  SYSTEM = 'SYSTEM',
+}
+
+export enum ReportReason {
+  COPYRIGHT = 'COPYRIGHT',
+  SPAM = 'SPAM',
+  HARASSMENT = 'HARASSMENT',
+  VIOLENCE = 'VIOLENCE',
+  ILLEGAL_CONTENT = 'ILLEGAL_CONTENT',
+  OTHER = 'OTHER',
+}
+
+export enum ReportStatus {
+  PENDING = 'PENDING',
+  INVESTIGATING = 'INVESTIGATING',
+  RESOLVED = 'RESOLVED',
+  DISMISSED = 'DISMISSED',
+}
+
+export enum ProcessingJobStatus {
+  QUEUED = 'QUEUED',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
