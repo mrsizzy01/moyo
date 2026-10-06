@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { AudioPlayerComponent } from '../../components/player/audio-player.component';
+import { AudioPlayerService } from '../../services/audio-player.service';
 
 @Component({
   selector: 'app-podcasts',
@@ -21,13 +22,6 @@ import { AudioPlayerComponent } from '../../components/player/audio-player.compo
       </div>
 
       <div *ngIf="!loading()" class="space-y-8">
-        <!-- Playing now -->
-        <div *ngIf="playingEpisode()" class="glass-panel rounded-2xl p-5 border border-moyo-accent/30 space-y-3">
-          <p class="text-xs font-bold text-moyo-accent uppercase tracking-widest">Épisode en cours</p>
-          <p class="font-bold text-white text-sm">{{ playingEpisode()!.title }}</p>
-          <app-audio-player [src]="playingEpisode()!.audioUrl" [title]="playingEpisode()!.title"></app-audio-player>
-        </div>
-
         <!-- Podcast list / selected detail -->
         <div *ngIf="!selectedPodcast()" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <div *ngFor="let p of podcasts()" (click)="openPodcast(p)"
@@ -83,7 +77,10 @@ export class PodcastsPageComponent implements OnInit {
   playingEpisode = signal<any>(null);
   loading = signal(true);
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private audioService: AudioPlayerService,
+  ) {}
 
   ngOnInit() {
     this.http.get<any>('http://localhost:3000/api/podcasts').subscribe({
@@ -98,7 +95,16 @@ export class PodcastsPageComponent implements OnInit {
     });
   }
 
-  playEpisode(ep: any) { this.playingEpisode.set(ep); }
+  playEpisode(ep: any) {
+    this.playingEpisode.set(ep);
+    this.audioService.playTrack({
+      id: ep.id,
+      title: ep.title,
+      artistName: this.selectedPodcast()?.title || 'Podcast Moyo',
+      coverUrl: this.selectedPodcast()?.coverUrl,
+      audioUrl: ep.audioUrl,
+    });
+  }
 
   formatDuration(s: number): string {
     if (!s) return '';

@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { AudioPlayerComponent } from '../../components/player/audio-player.component';
+import { AudioPlayerService } from '../../services/audio-player.service';
 
 @Component({
   selector: 'app-music',
@@ -111,7 +112,10 @@ export class MusicPageComponent implements OnInit {
   currentTrack = signal<any>(null);
   loading = signal(true);
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private audioService: AudioPlayerService,
+  ) {}
 
   ngOnInit() {
     Promise.all([
@@ -134,6 +138,13 @@ export class MusicPageComponent implements OnInit {
 
   playTrack(track: any, album: any) {
     this.currentTrack.set({ ...track, album });
+    this.audioService.playTrack({
+      id: track.id,
+      title: track.title,
+      artistName: track.artist?.name || album?.artist?.name || this.selectedArtist()?.name || 'Artiste Moyo',
+      coverUrl: album?.coverUrl || track.album?.coverUrl || this.selectedArtist()?.avatarUrl,
+      audioUrl: track.audioUrl,
+    });
   }
 
   formatDuration(s: number): string {

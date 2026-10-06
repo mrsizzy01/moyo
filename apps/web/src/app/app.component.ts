@@ -4,11 +4,12 @@ import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/rou
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from './services/auth.service';
 import { NotificationsService, NotificationItem } from './services/notifications.service';
+import { AudioPlayerComponent } from './components/player/audio-player.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, FormsModule],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, FormsModule, AudioPlayerComponent],
   template: `
     <div class="min-h-screen bg-moyo-dark text-white font-display flex flex-col">
 
@@ -140,6 +141,9 @@ import { NotificationsService, NotificationItem } from './services/notifications
           </div>
         </div>
       </footer>
+
+      <!-- Lecteur Audio Persistant Global -->
+      <app-audio-player></app-audio-player>
     </div>
   `,
   styles: [`
